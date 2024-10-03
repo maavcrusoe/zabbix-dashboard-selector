@@ -3,11 +3,10 @@ Frustrated with Zabbix filters? 😩✨
 
 Discover a simpler way to manage your host dashboards!
 
-
 With our easy-to-use host dashboard selector, you can streamline your monitoring experience and regain control. No more hassle with complex filters—just a straightforward solution that puts you back in charge! 🚀💻
 
 ## Key Benefits:
-- User-Friendly Interface: Navigate effortlessly and find what you need quickly! 🖱️
+- User-Friendly Interface: Navigate effortlessly without "filters" and find what you need quickly! 🖱️
 - Customizable Dashboards: Tailor your view to focus on the metrics that matter most to you. 📊
 - Enhanced Monitoring: Keep track of your systems without the frustration of complicated setups. 🔍
 
