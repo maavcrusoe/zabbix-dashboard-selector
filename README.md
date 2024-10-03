@@ -1,36 +1,73 @@
-# zabbix-dashboard-selector
-Frustrated with Zabbix filters? 😩✨ 
 
-Discover a simpler way to manage your host dashboards!
+# Zabbix Dashboard Selector
 
-With our easy-to-use host dashboard selector, you can streamline your monitoring experience and regain control. No more hassle with complex filters—just a straightforward solution that puts you back in charge! 🚀💻
+Are you frustrated with complex Zabbix filters? 😩 Discover a simpler way to manage your host dashboards! 🚀
 
-## Key Benefits:
-- User-Friendly Interface: Navigate effortlessly without "filters" and find what you need quickly! 🖱️
-- Customizable Dashboards: Tailor your view to focus on the metrics that matter most to you. 📊
-- Enhanced Monitoring: Keep track of your systems without the frustration of complicated setups. 🔍
+Our easy-to-use host dashboard selector streamlines your monitoring experience, putting you back in control. Say goodbye to complicated filters and hello to a straightforward solution that enhances your Zabbix workflow.
+
+## Key Benefits
+
+- **User-Friendly Interface**: Navigate effortlessly and find what you need quickly 🖱️
+- **Customizable Dashboards**: Focus on the metrics that matter most to you 📊
+- **Enhanced Monitoring**: Keep track of your systems without the frustration of complex setups 🔍
+
+## Installation and Setup
+
+1. Create dashboards in all your desired templates with your specific requirements.
+
+2. Create a macro called `{$GROUPIDS}` and set all groups you want to see:
+ ![Macro Setup](https://github.com/user-attachments/assets/61ed0b8c-74cc-4d98-a76f-d947020aadac)
+
+`{$GROUPIDS} = 2,4,5,6...`
+3. Create API on zabbix
+
+4. Install the new module in the `/usr/share/zabbix/modules` folder.
+5. Edit API variable on module file
+   
+6. Enable the module in Zabbix.
+   
+7. Navigate to Monitoring -> Host Dashboard Selector
+   
+8. Have fun 😁
+
+![Host Dashboard Selector](https://github.com/user-attachments/assets/620bc60e-6b50-4506-915c-eb85b59da468)
+
+## Features
+
+- Display format: `[groupID] - groupName (group_devices_counter)`
+- View all active problems for each host with severity indicators and colors
+- Quick access button to view individual host dashboards
+- Cool search function 🔎
+
+### Dashboard URL Format
+
+`zabbix.php?action=host.dashboard.view&hostid=xxxx`
+
+![Dashboard Example](https://github.com/user-attachments/assets/e792758f-1d10-45f2-8353-99ba60581a31)
 
 Take the stress out of monitoring with Zabbix and enjoy a smoother workflow! 🌟
 
-# Steps
-1. create your dashboard in all of your templates that you want with your own necesities
-2. Create a macro called {$GROUPIDS} and set all groups that do you want to see, 
-  ![image](https://github.com/user-attachments/assets/61ed0b8c-74cc-4d98-a76f-d947020aadac)
+## Contributing
 
- `{$GROUPIDS} = 2,4,5,6...` 
- 
-3. install new module on `/usr/share/zabbix/modules` folder
-4. enable module
-5. go to menu
-6. go to monitoring -> Host Dashboard Selector
-   
-   ![image](https://github.com/user-attachments/assets/620bc60e-6b50-4506-915c-eb85b59da468)
+We welcome contributions! Please feel free to submit a Pull Request.
+
+## Support
+
+If you encounter any problems or have any questions, please open an issue in this repository.
 
 
 
-As you can see, [groupID] - groupName (group_devices_counter).
-On each host all problems active with severity and colours and a button to see each dashboard 
 
-### Dashboard URL is -> `zabbix.php?action=host.dashboard.view&hostid=xxxx`
+# To Do..
+- [ ] Multiple lang.
+- [ ] dashboard missing on host XXX
+- [ ] convert variable API hardcoded to macro
+- [x] Variable groups by id using Zabbix Macro
+- [x] Alerts by severity on each host by group Id
+- [x] Create new submenu
 
-![image](https://github.com/user-attachments/assets/e792758f-1d10-45f2-8353-99ba60581a31)
+
+## Support
+
+For support telegram me.
+- [@maavcrusoe](https://t.me/maavcrusoe)
