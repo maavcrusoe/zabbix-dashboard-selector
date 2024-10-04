@@ -66,8 +66,8 @@ If you encounter any problems or have any questions, please open an issue in thi
 
 # To Do..
 - [ ] Multiple lang.
-- [ ] dashboard missing on host XXX
-- [ ] convert variable API hardcoded to macro
+- [x] dashboard missing on host XXX
+- [x] convert variable API hardcoded to macro
 - [x] Variable groups by id using Zabbix Macro
 - [x] Alerts by severity on each host by group Id
 - [x] Create new submenu
