@@ -1,0 +1,17 @@
+{
+    "manifest_version": 2.0,
+    "id": "HostDashboardSelector",
+    "name": "Host Dashboard Selector",
+    "version": "1.0",
+    "namespace": "HostDashboardSelector",
+    "description": "Select hosts and view their dashboards dynamically.",
+	"url": "https://github.com/maavcrusoe/zabbix-dashboard-selector",
+    "author": "MAAV",
+    "actions": {
+        "host.dashboard.selector": {
+            "class": "action",
+            "view": "view"
+        }
+    }
+}
+

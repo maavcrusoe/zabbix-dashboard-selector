@@ -1,0 +1,5 @@
+{
+    "serverUrl": "http://srvbt-mon.tunel.local:8080",
+    "apiUrl": "http://srvbt-mon.tunel.local:8080/api_jsonrpc.php",
+    "apiToken": "49115df509a6dc129025b933d4e77b1594ae950194c3bdfb4e35df2c8744acd7"
+}
