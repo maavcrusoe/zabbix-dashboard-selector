@@ -8,7 +8,7 @@ use CDiv;
 
 // Verificar si 'hosts' está definido
 if (!isset($data['hosts']) || empty($data['hosts'])) {
-    echo 'No se encontraron hosts.';
+    echo 'Not found any host.';
     return;
 }
 
@@ -195,7 +195,7 @@ foreach ($groupedHosts as $groupId => $group) {
     $table = new CTable();
     $table->setHeader([
         (new CColHeader("[".$groupId . "] - " . $group['name'] . " ($numHosts)")) 
-            ->setAttribute('colspan', '4')  // Asegurar que ocupe las 2 columnas
+            ->setAttribute('colspan', '3')  // Asegurar que ocupe las 2 columnas
             ->setAttribute('style', 'text-align: center; font-size: 24px;')
     ]);
 
@@ -251,24 +251,19 @@ foreach ($groupedHosts as $groupId => $group) {
         }
 
 
-        // Si el host no tiene gráficos ni triggers, se considera que no tiene dashboard asignado
-        $dashboardStatus = empty($graphs) ? "📊" : "";
-        $dashColor = empty($graphs) ? "Red" : "Green";
-        
+        // Si el host no tiene gráficos, mostrar solo el icono. Si tiene gráficos, mostrar el enlace al dashboard
+        $dashboardStatus = empty($graphs) 
+            ? "📊"  // Mostrar el icono si no hay gráficos
+            : (new CLink('See Dashboard', $serverUrl . '/zabbix.php?action=host.dashboard.view&hostid=' . $host['hostid']))
+                ->setAttribute('style', 'color: white; background-color: #5bbbbc; font-size:12px; padding: 10px; border-radius: 5px; text-decoration: none;');
 
-
-        // Crear el enlace al dashboard del host
-        $dashboard_url = $serverUrl . '/zabbix.php?action=host.dashboard.view&hostid=' . $host['hostid'];
-        $link = (new CLink('Ver Dashboard', $dashboard_url))
-                    ->setAttribute('style', 'color: white; background-color: #5bbbbc; padding: 10px; border-radius: 5px; text-decoration: none;');
-
-        // Añadir las filas con información de problemas y dashboard
+        // Añadir las filas con información de problemas y dashboard o icono
         $table->addRow([
             (new CCol($host['name']))->setAttribute('class', 'host-name')->setAttribute('style', 'text-align: center; padding: 10px 0;'),
             (new CCol($problemInfo))->setAttribute('style', 'text-align: center; padding: 10px 0; color: ' . $color . ';'),
-            (new CCol($link))->setAttribute('style', 'text-align: center; padding: 10px 0;'),
-            (new CCol($dashboardStatus))->setAttribute('style', 'text-align: center; font-size: 24px; vertical-align: middle;')
+            (new CCol($dashboardStatus))->setAttribute('style', 'text-align: center; font-size:24px; vertical-align: middle;')  // Aquí se mostrará ya sea el ícono o el enlace
         ]);
+            
     }
 
     // Añadir cada tabla (columna) al contenedor principal
