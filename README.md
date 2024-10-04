@@ -22,7 +22,13 @@ Our easy-to-use host dashboard selector streamlines your monitoring experience, 
 3. Create API on zabbix
 
 4. Install the new module in the `/usr/share/zabbix/modules` folder.
-5. Edit API variable on module file
+5. Edit `config.json` and set variables
+   
+serverUrl -> `http://localhost:8080`
+
+apiUrl -> `http://localhost:8080/api_jsonrpc.php` 
+  
+apiToken -> `5648e91....4a89321`
    
 6. Enable the module in Zabbix.
    
