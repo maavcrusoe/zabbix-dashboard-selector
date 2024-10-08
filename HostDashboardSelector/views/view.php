@@ -8,7 +8,7 @@ use CDiv;
 
 // Verificar si 'hosts' está definido
 if (!isset($data['hosts']) || empty($data['hosts'])) {
-    echo 'Not found any host.';
+    echo 'No se encontraron hosts.';
     return;
 }
 
@@ -47,16 +47,44 @@ function zabbixApiRequest($apiUrl, $apiToken, $method, $params) {
 
 // Función para obtener los problemas de un host y contarlos por severidad
 function getHostProblemsBySeverity($apiUrl, $apiToken, $hostid) {
-    $params = [
-        'output' => ['eventid', 'severity', 'acknowledged', 'name'],
+    // Obtener los problemas
+    $problemParams = [
+        'output' => ['eventid', 'severity', 'acknowledged', 'name', 'objectid'],
         'hostids' => $hostid,
         'recent' => true,
         'sortfield' => ['eventid'],
         'sortorder' => 'DESC'
     ];
 
-    // Hacer la solicitud a la API
-    $response = zabbixApiRequest($apiUrl, $apiToken, 'problem.get', $params);
+    $problemResponse = zabbixApiRequest($apiUrl, $apiToken, 'problem.get', $problemParams);
+
+    // Obtener los IDs de los triggers asociados a los problemas
+    $triggerIds = array_column($problemResponse['result'], 'objectid');
+
+    // Obtener información de los triggers
+    $triggerParams = [
+        'output' => ['triggerid', 'status', 'itemid'],
+        'triggerids' => $triggerIds,
+        'selectItems' => ['itemid', 'status'],
+        'filter' => ['status' => 0]  // 0 significa habilitado, 1 es deshabilitado
+    ];
+
+    $triggerResponse = zabbixApiRequest($apiUrl, $apiToken, 'trigger.get', $triggerParams);
+
+    // Crear un array de triggers habilitados con items habilitados
+    $validTriggers = [];
+    foreach ($triggerResponse['result'] as $trigger) {
+        $allItemsEnabled = true;
+        foreach ($trigger['items'] as $item) {
+            if ($item['status'] != 0) {  // 0 significa habilitado
+                $allItemsEnabled = false;
+                break;
+            }
+        }
+        if ($allItemsEnabled) {
+            $validTriggers[] = $trigger['triggerid'];
+        }
+    }
 
     // Inicializar un array para contar problemas por severidad
     $severityCounts = [
@@ -68,19 +96,28 @@ function getHostProblemsBySeverity($apiUrl, $apiToken, $hostid) {
         'Not classified' => 0
     ];
 
-    // Contar problemas por severidad
-    if (!empty($response['result'])) {
-        foreach ($response['result'] as $problem) {
-            switch ($problem['severity']) {
-                case 5: $severityCounts['Disaster']++; break;
-                case 4: $severityCounts['High']++; break;
-                case 3: $severityCounts['Average']++; break;
-                case 2: $severityCounts['Warning']++; break;
-                case 1: $severityCounts['Information']++; break;
-                default: $severityCounts['Not classified']++; break;
+    // Contar problemas por severidad, solo para triggers habilitados con items habilitados
+    if (!empty($problemResponse['result'])) {
+        foreach ($problemResponse['result'] as $problem) {
+            // Verificar si el trigger asociado está en la lista de triggers válidos
+            if (in_array($problem['objectid'], $validTriggers)) {
+                switch ($problem['severity']) {
+                    case 5: $severityCounts['Disaster']++; break;
+                    case 4: $severityCounts['High']++; break;
+                    case 3: $severityCounts['Average']++; break;
+                    case 2: $severityCounts['Warning']++; break;
+                    case 1: $severityCounts['Information']++; break;
+                    default: $severityCounts['Not classified']++; break;
+                }
             }
         }
     }
+    // debug
+    //if ($hostid == 11104){
+    //    print_r($severityCounts);
+    //    echo("\n");
+    //    print_r($problemResponse);
+    //}
 
     return $severityCounts;
 }
