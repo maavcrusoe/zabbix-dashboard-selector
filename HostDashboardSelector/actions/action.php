@@ -25,43 +25,43 @@ class action extends CController {
         // Acceder a la URL de la API y al token
         $apiUrl = $config['apiUrl'];
         $apiToken = $config['apiToken'];
-    
+
         // Obtener la macro global que contiene los groupids
         $macro = $this->zabbixApiRequest($apiUrl, $apiToken, 'usermacro.get', [
             'globalmacro' => true,
             'output' => ['macro', 'value'],
             'filter' => ['macro' => '{$GROUPIDS}'] // Asegúrate de que el nombre de la macro sea correcto
         ]);
-    
+
         // Convertir el valor de la macro en un array de groupids
         $groupids = [];
         if (!empty($macro)) {
             $groupids = explode(',', $macro[0]['value']);  // Extraer los groupids de la macro
         }
-    
+
         // Verificar si se obtuvieron groupids
         if (empty($groupids)) {
             echo 'No se encontraron groupids en la macro global.';
             return;
         }
-    
+
         // Hacer la solicitud a la API para obtener los hosts de los grupos especificados
         $hosts = $this->zabbixApiRequest($apiUrl, $apiToken, 'host.get', [
             'output' => ['hostid', 'name'],
             'selectGroups' => ['groupid', 'name'],  // Incluimos los grupos asociados
             'groupids' => $groupids
         ]);
-    
+
         // Verificar si se obtuvieron hosts
         if ($hosts === null || empty($hosts)) {
             $hosts = [];
         }
-    
+
         // Pasar los hosts a la vista
         $response = new CControllerResponseData(['hosts' => $hosts]);
         $this->setResponse($response);
     }
-    
+
 
     // Función para hacer peticiones a la API de Zabbix usando un API Token
     private function zabbixApiRequest($apiUrl, $apiToken, $method, $params) {
@@ -70,7 +70,7 @@ class action extends CController {
             'method' => $method,
             'params' => $params,
             'id' => 1,
-            'auth' => $apiToken  // Usamos el API token aquí
+            //'auth' => $apiToken  // Usamos el API token aquí
         ];
 
         $response = $this->makeApiRequest($apiUrl, $request, $apiToken);
