@@ -1,17 +1,87 @@
 <?php
-use CTable;
-use CCol;
-use CColHeader;
-use CButton;
-use CLink;
-use CDiv;
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+//namespace Zabbix;
+//use CTable;
+//use CCol;
+//use CColHeader;
+//use CButton;
+//use CLink;
+//use CDiv;
+
+require_once('/usr/share/zabbix/include/classes/html/CTable.php');
+require_once('/usr/share/zabbix/include/classes/html/CCol.php');
+require_once('/usr/share/zabbix/include/classes/html/CColHeader.php');
+require_once('/usr/share/zabbix/include/classes/html/CButton.php');
+require_once('/usr/share/zabbix/include/classes/html/CLink.php');
+require_once('/usr/share/zabbix/include/classes/html/CDiv.php');
+
+$table = new CTable();
+$col = new CCol();
+$colHeader = new CColHeader();
+$button = new CButton();
+$link = new CLink();
+$div = new CDiv();
+
+
+// Función para obtener el token de autenticación
+function getAuthToken($apiUrl, $username, $password) {
+    $request = [
+        'jsonrpc' => '2.0',
+        'method' => 'user.login',
+        'params' => [
+            'username' => $username, // Nombre correcto del parámetro
+            'password' => $password
+        ],
+        'id' => 1
+    ];
+
+    $response = $this->makeApiRequest($apiUrl, $request);
+    //echo 'Respuesta completa de la API: ' . json_encode($response);
+
+    if (!$response || !isset($response['result'])) {
+        echo 'Error: No se pudo obtener el token. Respuesta de la API: ' . json_encode($response);
+    }
+
+    return $response['result'] ?? null;
+}
+
+// Función para realizar las solicitudes HTTP a la API
+function makeApiRequest($apiUrl, $request, $apiToken = null) {
+    //echo "API Token: " . $apiToken . "\n";  // Verificar el valor del token
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($ch, CURLOPT_URL, $apiUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $apiToken // Usamos el token como Bearer Token
+    ]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($request));
+
+    $response = curl_exec($ch);
+    if (curl_errno($ch)) {
+        echo 'Error en cURL: ' . curl_error($ch);
+    }
+    curl_close($ch);
+    //echo 'Respuesta completa de la API: ' . $response;
+
+    return json_decode($response, true);
+}
+
 
 // Verificar si 'hosts' está definido
 if (!isset($data['hosts']) || empty($data['hosts'])) {
     echo 'No se encontraron hosts.';
     return;
 }
-
+//echo '<pre>';
+//print_r($data['hosts']);
+//echo '</pre>';
 
 // Cargar el archivo .json
 $configPath = dirname(__DIR__) . '/config.json';
@@ -21,6 +91,14 @@ $config = json_decode(file_get_contents($configPath), true);
 $serverUrl = $config['serverUrl'];
 $apiUrl = $config['apiUrl'];
 $apiToken = $config['apiToken'];
+//$apiToken = $config['auth'];
+//$username = $config['username'];
+//$password = $config['password'];
+
+// Obtener el token de autenticación
+//$apiToken = getAuthToken($apiUrl, $username, $password);
+
+
 
 // Función para hacer solicitudes a la API de Zabbix
 function zabbixApiRequest($apiUrl, $apiToken, $method, $params) {
@@ -28,15 +106,20 @@ function zabbixApiRequest($apiUrl, $apiToken, $method, $params) {
         'jsonrpc' => '2.0',
         'method' => $method,
         'params' => $params,
-        'auth' => $apiToken,
+        //'auth' => $apiToken,
         'id' => 1
     ];
 
     $ch = curl_init();
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
     curl_setopt($ch, CURLOPT_URL, $apiUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $apiToken // Usamos el token como Bearer Token
+    ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($request));
 
     $response = curl_exec($ch);
@@ -47,7 +130,6 @@ function zabbixApiRequest($apiUrl, $apiToken, $method, $params) {
 
 // Función para obtener los problemas de un host y contarlos por severidad
 function getHostProblemsBySeverity($apiUrl, $apiToken, $hostid) {
-    // Obtener los problemas
     $problemParams = [
         'output' => ['eventid', 'severity', 'acknowledged', 'name', 'objectid'],
         'hostids' => $hostid,
@@ -58,10 +140,8 @@ function getHostProblemsBySeverity($apiUrl, $apiToken, $hostid) {
 
     $problemResponse = zabbixApiRequest($apiUrl, $apiToken, 'problem.get', $problemParams);
 
-    // Obtener los IDs de los triggers asociados a los problemas
     $triggerIds = array_column($problemResponse['result'], 'objectid');
 
-    // Obtener información de los triggers
     $triggerParams = [
         'output' => ['triggerid', 'status', 'itemid'],
         'triggerids' => $triggerIds,
@@ -71,12 +151,11 @@ function getHostProblemsBySeverity($apiUrl, $apiToken, $hostid) {
 
     $triggerResponse = zabbixApiRequest($apiUrl, $apiToken, 'trigger.get', $triggerParams);
 
-    // Crear un array de triggers habilitados con items habilitados
     $validTriggers = [];
     foreach ($triggerResponse['result'] as $trigger) {
         $allItemsEnabled = true;
         foreach ($trigger['items'] as $item) {
-            if ($item['status'] != 0) {  // 0 significa habilitado
+            if ($item['status'] != 0) {
                 $allItemsEnabled = false;
                 break;
             }
@@ -86,7 +165,6 @@ function getHostProblemsBySeverity($apiUrl, $apiToken, $hostid) {
         }
     }
 
-    // Inicializar un array para contar problemas por severidad
     $severityCounts = [
         'Disaster' => 0,
         'High' => 0,
@@ -96,10 +174,8 @@ function getHostProblemsBySeverity($apiUrl, $apiToken, $hostid) {
         'Not classified' => 0
     ];
 
-    // Contar problemas por severidad, solo para triggers habilitados con items habilitados
     if (!empty($problemResponse['result'])) {
         foreach ($problemResponse['result'] as $problem) {
-            // Verificar si el trigger asociado está en la lista de triggers válidos
             if (in_array($problem['objectid'], $validTriggers)) {
                 switch ($problem['severity']) {
                     case 5: $severityCounts['Disaster']++; break;
@@ -112,12 +188,6 @@ function getHostProblemsBySeverity($apiUrl, $apiToken, $hostid) {
             }
         }
     }
-    // debug
-    //if ($hostid == 11104){
-    //    print_r($severityCounts);
-    //    echo("\n");
-    //    print_r($problemResponse);
-    //}
 
     return $severityCounts;
 }
@@ -128,14 +198,11 @@ function getHostGraphs($apiUrl, $apiToken, $hostid) {
         'hostids' => $hostid
     ];
 
-    // Hacer la solicitud a la API para obtener los gráficos del host
     $response = zabbixApiRequest($apiUrl, $apiToken, 'graph.get', $params);
 
-    // Si no hay gráficos devueltos, el host no tiene un dashboard asignado
     return $response['result'] ?? [];
 }
 
-// Obtener la macro global que contiene los groupids
 $macroResponse = zabbixApiRequest($apiUrl, $apiToken, 'usermacro.get', [
     'globalmacro' => true,
     'output' => ['macro', 'value'],
@@ -144,22 +211,19 @@ $macroResponse = zabbixApiRequest($apiUrl, $apiToken, 'usermacro.get', [
 
 $groupids = [];
 if (!empty($macroResponse['result'])) {
-    $groupids = explode(',', str_replace(' ', '', $macroResponse['result'][0]['value']));  // Convertir el valor de la macro a array
+    $groupids = explode(',', str_replace(' ', '', $macroResponse['result'][0]['value']));
 }
 
-// Verificar si se obtuvieron groupids
-if (empty($groupids)) {
-    echo 'No se encontraron groupids en la macro global.';
-    return;
-}
+//if (empty($groupids)) {
+//    echo 'No se encontraron groupids en la macro global.';
+//    return;
+//}
 
-// Hacer la solicitud a la API para obtener los nombres de los grupos
 $groupsResponse = zabbixApiRequest($apiUrl, $apiToken, 'hostgroup.get', [
     'output' => ['groupid', 'name'],
     'groupids' => $groupids
 ]);
 
-// Construir el array $groupNames dinámicamente usando los datos obtenidos de la API
 $groupNames = [];
 if (!empty($groupsResponse['result'])) {
     foreach ($groupsResponse['result'] as $group) {
@@ -167,40 +231,46 @@ if (!empty($groupsResponse['result'])) {
     }
 }
 
-// Verificar si tenemos nombres de grupos
-if (empty($groupNames)) {
-    echo 'No se encontraron nombres de grupos.';
-    return;
-}
+//if (empty($groupNames)) {
+//    echo 'No se encontraron nombres de grupos.';
+//    return;
+//}
 
-// Crear un array para agrupar hosts por grupo
 $groupedHosts = [];
 
-// Recorrer los hosts y agruparlos por groupid
 foreach ($data['hosts'] as $host) {
-    if (isset($host['groups']) && is_array($host['groups'])) {
+    // Si no tienes grupos, agrupa los hosts en un grupo "default"
+    if (empty($host['groups'])) {
+        $groupId = 'default';  // Usamos un grupo "default"
+        if (!isset($groupedHosts[$groupId])) {
+            $groupedHosts[$groupId] = [
+                'name' => 'Default Group',  // Nombre del grupo
+                'hosts' => []
+            ];
+        }
+        $groupedHosts[$groupId]['hosts'][] = $host;
+    } else {
+        // Si tienes grupos, usa el código original
         foreach ($host['groups'] as $group) {
             $groupId = $group['groupid'];
             if (isset($groupNames[$groupId])) {
-                // Inicializamos el grupo si no existe
                 if (!isset($groupedHosts[$groupId])) {
                     $groupedHosts[$groupId] = [
                         'name' => $groupNames[$groupId],
                         'hosts' => []
                     ];
                 }
-                // Añadimos el host a su grupo correspondiente
                 $groupedHosts[$groupId]['hosts'][] = $host;
             }
         }
     }
 }
 
-// Verificar si tenemos grupos para mostrar
-if (empty($groupedHosts)) {
-    echo 'No se encontraron hosts en los grupos especificados.';
-    return;
-}
+
+//if (empty($groupedHosts)) {
+//    echo 'No se encontraron hosts en los grupos especificados.';
+//    return;
+//}
 
 // Añadir el buscador arriba de la tabla
 echo '<div class="search">You can search directly ';
@@ -216,80 +286,71 @@ echo '<span style="color: yellow;">● Warning severity</span>';
 echo '<span style="color: cyan;">● Information severity</span>';
 echo '<span >● 📊 Missing Dashboard</span>';
 echo '</div>';
-echo '</div>';
 
-// Crear la barra divisoria antes de la tabla
-
-
-// Crear el contenedor principal con diseño en columnas (flexbox)
 $container = new CDiv();
-$container->setAttribute('style', 'display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;');
+$container->setAttribute('style', 'display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; background-color:#0e1012;');
 
-// Crear una tabla por cada grupo y añadirla al contenedor
 foreach ($groupedHosts as $groupId => $group) {
-    $numHosts = count($group['hosts']); // Contador de hosts en el grupo
-    
+    $numHosts = count($group['hosts']);
+
+    // Crear una tabla para el grupo
     $table = new CTable();
     $table->setHeader([
-        (new CColHeader("[".$groupId . "] - " . $group['name'] . " ($numHosts)")) 
-            ->setAttribute('colspan', '3')  // Asegurar que ocupe las 2 columnas
+        (new CColHeader("[".$groupId . "] - " . $group['name'] . " ($numHosts)"))
+            ->setAttribute('colspan', '3')
             ->setAttribute('style', 'text-align: center; font-size: 24px;')
     ]);
 
-    // Añadir los hosts del grupo a la tabla
+    // Añadir cada host a la tabla
     foreach ($group['hosts'] as $host) {
-        // Obtener problemas para el host actual, agrupados por severidad
         $problemsBySeverity = getHostProblemsBySeverity($apiUrl, $apiToken, $host['hostid']);
         $graphs = getHostGraphs($apiUrl, $apiToken, $host['hostid']);
 
-        // Crear la cadena que contiene la información de problemas por severidad
         $problemInfo = " ";
         $hasProblems = false;
         $highestSeverity = -1;
-        
+
         foreach ($problemsBySeverity as $severity => $count) {
             if ($count > 0) {
                 $problemInfo .= "$severity: $count, ";
                 $hasProblems = true;
-                // Asignar la severidad más alta encontrada
                 $severityLevel = array_search($severity, ['Not classified', 'Information', 'Warning', 'Average', 'High', 'Disaster']);
                 if ($severityLevel > $highestSeverity) {
                     $highestSeverity = $severityLevel;
                 }
             }
         }
+
         if ($hasProblems) {
-            $problemInfo = rtrim($problemInfo, ', ');  // Eliminar la última coma
+            $problemInfo = rtrim($problemInfo, ', ');
         } else {
             $problemInfo = "Host ok";
         }
 
-        // Determinar el color en función de la severidad más alta encontrada
-        $color = 'green'; // Por defecto si no hay problemas
+        $color = 'green';
         if ($hasProblems) {
             switch ($highestSeverity) {
-                case 5: // Disaster
-                case 4: // High
+                case 5:
+                case 4:
                     $color = 'red';
                     break;
-                case 3: // Average
+                case 3:
                     $color = 'orange';
                     break;
-                case 2: // Warning
+                case 2:
                     $color = 'yellow';
                     break;
-                case 1: // Information
+                case 1:
                     $color = 'cyan';
                     break;
-                default: // Not classified
+                default:
                     $color = 'gray';
                     break;
             }
         }
 
-
         // Si el host no tiene gráficos, mostrar solo el icono. Si tiene gráficos, mostrar el enlace al dashboard
-        $dashboardStatus = empty($graphs) 
+        $dashboardStatus = empty($graphs)
             ? "📊"  // Mostrar el icono si no hay gráficos
             : (new CLink('See Dashboard', $serverUrl . '/zabbix.php?action=host.dashboard.view&hostid=' . $host['hostid']))
                 ->setAttribute('style', 'color: white; background-color: #5bbbbc; font-size:12px; padding: 10px; border-radius: 5px; text-decoration: none;');
@@ -300,21 +361,28 @@ foreach ($groupedHosts as $groupId => $group) {
             (new CCol($problemInfo))->setAttribute('style', 'text-align: center; padding: 10px 0; color: ' . $color . ';'),
             (new CCol($dashboardStatus))->setAttribute('style', 'text-align: center; font-size:24px; vertical-align: middle;')  // Aquí se mostrará ya sea el ícono o el enlace
         ]);
-            
     }
 
-    // Añadir cada tabla (columna) al contenedor principal
-    $container->addItem($table);
+    // Añadir la tabla y el botón al contenedor
+    $groupContainer = new CDiv();
+    $groupContainer->addItem($table);
+
+    // Añadir todo el grupo al contenedor principal
+    $container->addItem($groupContainer);
 }
 
-// Mostrar el contenedor con las tablas de grupos en columnas
 echo $container->toString();
+
+////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+
 ?>
 
 <!-- Agregamos los estilos de hover para las filas y tabla -->
 <style>
     .search {
-        padding-left: 50px;
+        /*padding-left: 50px;*/
         background-color: #2b2b2b;
         margin-bottom: 20px;
     }
@@ -324,7 +392,7 @@ echo $container->toString();
     }
 
     #searchInput{
-        width: 300px; 
+        width: 300px;
         padding: 10px;
         text-align: "center";
     }
@@ -390,7 +458,7 @@ function filterTable() {
     var input, filter, table, tr, td, i, txtValue;
     input = document.getElementById("searchInput");
     filter = input.value.toUpperCase();
-    
+
     // Recorremos cada fila de las tablas para ver si coincide con la búsqueda
     var rows = document.getElementsByClassName('host-name');
     for (i = 0; i < rows.length; i++) {
@@ -402,7 +470,7 @@ function filterTable() {
             } else {
                 rows[i].parentElement.style.display = "none";
             }
-        }       
+        }
     }
 }
 </script>
