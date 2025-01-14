@@ -275,12 +275,12 @@ if (empty($groupedHosts)) {
 // Añadir el buscador arriba de la tabla
 echo '<div class="search">You can search directly ';
 echo '<input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search a host...">';
-
+echo '  Displayed ' . count($data['hosts']) . ' Hosts in ' . count($groupids) . ' groups <br>';
 
 // Añadir la leyenda en horizontal
-echo '<div class="legend" style="margin-top: 10px; display: flex; justify-content: space-around; font-size: 14px;">';
-echo '<span style="color: green;">● Host has a dashboard</span>';
-echo '<span style="color: red;">● Host missing dashboard</span>';
+echo '<div class="legend">';
+echo '<span style="color: green;">● Host Ok</span>';
+echo '<span style="color: red;">● Host Critical</span>';
 echo '<span style="color: orange;">● Warning severity</span>';
 echo '<span style="color: yellow;">● Warning severity</span>';
 echo '<span style="color: cyan;">● Information severity</span>';
@@ -298,7 +298,6 @@ foreach ($groupedHosts as $groupId => $group) {
     $table->setHeader([
         (new CColHeader("[".$groupId . "] - " . $group['name'] . " ($numHosts)"))
             ->setAttribute('colspan', '3')
-            ->setAttribute('style', 'text-align: center; font-size: 24px;')
     ]);
 
     // Añadir cada host a la tabla
@@ -373,80 +372,143 @@ foreach ($groupedHosts as $groupId => $group) {
 
 echo $container->toString();
 
+
+// Añadir el footer
+$manifestPath = 'modules/HostDashboardSelector/manifest.json';
+$manifestContent = file_get_contents($manifestPath);
+$manifestData = json_decode($manifestContent, true);
+
+$moduleName = $manifestData['name'];
+$moduleVersion = $manifestData['version'];
+$moduleAuthor = $manifestData['author'];
+
+echo '<footer style="background-color: #2b2b2b; color: white; text-align: center; padding: 20px; margin-top: 20px;">';
+echo '    <p>&copy; ' . date("Y") . ' Zabbix SIA. Todos los derechos reservados.</p>';
+echo '    <p>Module: ' . htmlspecialchars($moduleName) . ' v' . htmlspecialchars($moduleVersion) . '</p>';
+echo '    <p>Autor: ' . htmlspecialchars($moduleAuthor) . '</p>';
+echo '    <p>Versión Zabbix ' . ZABBIX_VERSION . '</p>';
+echo '</footer>';
+
+
+
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
 
 ?>
 <!-- Agregamos los estilos de hover para las filas y tabla -->
+<!-- Estilos mejorados para el módulo de Zabbix -->
 <style>
+    /* Contenedor de búsqueda */
     .search {
-        /*padding-left: 50px;*/
         background-color: #2b2b2b;
         margin-bottom: 20px;
-    }
-    .legend {
-        background-color: #2b2b2b;
-        margin: 20px;
+        /*margin-left: 10px;*/
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     }
 
-    #searchInput{
+    /* Contenedor de leyendas */
+    .legend {
+        display: flex;
+        font-size: 14px;
+        justify-content: space-around;
+        background-color: #2b2b2b;
+        margin: 10px;
+        border-radius: 8px;
+        /*box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);*/
+        align-items: center;
+        height: 50px;
+    }
+
+    /* Campo de búsqueda */
+    #searchInput {
         width: 300px;
         padding: 10px;
-        text-align: "center";
+        border: 2px solid #6d6d6d;
+        border-radius: 5px;
+        font-size: 16px;
+        background-color: #3b3b3b;
+        color: #ffffff;
+        text-align: center;
+        transition: border-color 0.3s;
     }
 
+    #searchInput:focus {
+        border-color: #008cba;
+        outline: none;
+    }
+
+    /* Tabla */
     table {
-        margin-left: 20px;
+        width: 95%;
+        margin: 20px auto;
+        border-collapse: collapse;
         background-color: #2b2b2b;
-    }
-    table thead th {
-        background-color: #6d6d6d; /* Color de fondo oscuro similar al modo oscuro de Zabbix */
-        color: #ffffff;            /* Color del texto (blanco) */
-        font-size: 28px;           /* Tamaño de fuente más grande para el título */
-        text-align: center;        /* Centrar el texto */
-        padding: 20px;             /* Espaciado interno */
-        border-bottom: 2px solid #444; /* Línea inferior más gruesa para el borde */
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
+    /* Encabezado de tabla */
+    table thead th {
+        background-color: #6d6d6d;
+        color: #ffffff;
+        font-size: 24px;
+        text-align: center;
+        padding: 15px;
+        border-bottom: 2px solid #444;
+    }
+
+    /* Filas de tabla */
     table tr {
         transition: background-color 0.3s;
-        padding: 30px;             /* Espaciado interno */
+    }
+
+    table tr:nth-child(even) {
+        background-color: #333333;
     }
 
     table tr:hover {
-        background-color: #008cba; /* Color de fondo al pasar el ratón sobre la fila */
+        background-color: #008cba;
         cursor: pointer;
     }
 
-    /* Hover para toda la fila */
-    table td:hover {
-        background-color: #008cba;
+    /* Celdas de tabla */
+    table td {
+        text-align: center;
+        padding: 12px;
+        color: #ffffff;
+        border-bottom: 1px solid #444;
     }
 
-    /* Estilo para el botón de dashboard */
-    .myButton:hover {
-        background-color: #008cba;
-        color: black;
-    }
-
-    /* Estilo consistente para el botón */
+    /* Botón personalizado */
     .myButton {
         display: inline-block;
-        padding: 10px;
+        padding: 10px 15px;
         text-decoration: none;
         color: white;
         background-color: #5bbbbc;
         border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
         text-align: center;
-        transition: background-color 0.3s;
+        transition: background-color 0.3s, color 0.3s;
     }
 
     .myButton:hover {
         background-color: #008cba;
+        color: #ffffff;
     }
+
+    footer {
+        background-color: #2b2b2b;
+    }
+
+    /* Línea divisoria */
     hr {
-        margin-bottom: 20px;
+        margin: 20px 0;
+        border: none;
+        border-top: 2px solid #6d6d6d;
         width: 100%;
     }
 </style>
