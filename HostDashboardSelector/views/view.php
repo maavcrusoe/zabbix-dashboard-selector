@@ -1,7 +1,9 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// print errors
+//ini_set('display_errors', 1);
+//ini_set('display_startup_errors', 1);
+//error_reporting(E_ALL);
+echo '<link rel="stylesheet" type="text/css" href="/usr/share/zabbix/templates/styles.css">';
 
 //namespace Zabbix;
 //use CTable;
@@ -91,14 +93,9 @@ $config = json_decode(file_get_contents($configPath), true);
 $serverUrl = $config['serverUrl'];
 $apiUrl = $config['apiUrl'];
 $apiToken = $config['apiToken'];
-//$apiToken = $config['auth'];
-//$username = $config['username'];
-//$password = $config['password'];
 
 // Obtener el token de autenticación
 //$apiToken = getAuthToken($apiUrl, $username, $password);
-
-
 
 // Función para hacer solicitudes a la API de Zabbix
 function zabbixApiRequest($apiUrl, $apiToken, $method, $params) {
@@ -214,15 +211,17 @@ if (!empty($macroResponse['result'])) {
     $groupids = explode(',', str_replace(' ', '', $macroResponse['result'][0]['value']));
 }
 
-//if (empty($groupids)) {
-//    echo 'No se encontraron groupids en la macro global.';
-//    return;
-//}
+if (empty($groupids)) {
+    echo 'No se encontraron groupids en la macro global.';
+    return;
+}
+
 
 $groupsResponse = zabbixApiRequest($apiUrl, $apiToken, 'hostgroup.get', [
     'output' => ['groupid', 'name'],
     'groupids' => $groupids
 ]);
+//print_r($groupsResponse);
 
 $groupNames = [];
 if (!empty($groupsResponse['result'])) {
@@ -231,28 +230,29 @@ if (!empty($groupsResponse['result'])) {
     }
 }
 
-//if (empty($groupNames)) {
-//    echo 'No se encontraron nombres de grupos.';
-//    return;
-//}
+if (empty($groupNames)) {
+    echo 'No se encontraron nombres de grupos.';
+    return;
+}
 
 $groupedHosts = [];
 
 foreach ($data['hosts'] as $host) {
-    // Si no tienes grupos, agrupa los hosts en un grupo "default"
-    if (empty($host['groups'])) {
-        $groupId = 'default';  // Usamos un grupo "default"
+    // Si no tiene grupos o el array de hostgroups está vacío
+    if (empty($host['hostgroups'])) {
+        $groupId = 'default';
         if (!isset($groupedHosts[$groupId])) {
             $groupedHosts[$groupId] = [
-                'name' => 'Default Group',  // Nombre del grupo
+                'name' => 'Default Group',
                 'hosts' => []
             ];
         }
         $groupedHosts[$groupId]['hosts'][] = $host;
     } else {
-        // Si tienes grupos, usa el código original
-        foreach ($host['groups'] as $group) {
+        // Recorremos los hostgroups de cada host
+        foreach ($host['hostgroups'] as $group) {
             $groupId = $group['groupid'];
+            // Asumimos que $groupNames es un array con los nombres de los grupos
             if (isset($groupNames[$groupId])) {
                 if (!isset($groupedHosts[$groupId])) {
                     $groupedHosts[$groupId] = [
@@ -267,10 +267,10 @@ foreach ($data['hosts'] as $host) {
 }
 
 
-//if (empty($groupedHosts)) {
-//    echo 'No se encontraron hosts en los grupos especificados.';
-//    return;
-//}
+if (empty($groupedHosts)) {
+    echo 'No se encontraron hosts en los grupos especificados.';
+    return;
+}
 
 // Añadir el buscador arriba de la tabla
 echo '<div class="search">You can search directly ';
@@ -288,7 +288,7 @@ echo '<span >● 📊 Missing Dashboard</span>';
 echo '</div>';
 
 $container = new CDiv();
-$container->setAttribute('style', 'display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; background-color:#0e1012;');
+$container->setAttribute('style', 'display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; background-color: #0e1012;');
 
 foreach ($groupedHosts as $groupId => $group) {
     $numHosts = count($group['hosts']);
@@ -378,7 +378,6 @@ echo $container->toString();
 ///////////////////////////////////////////////////////////////////////////
 
 ?>
-
 <!-- Agregamos los estilos de hover para las filas y tabla -->
 <style>
     .search {
