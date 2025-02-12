@@ -349,11 +349,17 @@ foreach ($groupedHosts as $groupId => $group) {
         }
 
         // Si el host no tiene gráficos, mostrar solo el icono. Si tiene gráficos, mostrar el enlace al dashboard
+        //$dashboardStatus = empty($graphs)
+        //    ? "📊"  // Mostrar el icono si no hay gráficos
+        //    : (new CLink('See Dashboard', $serverUrl . '/zabbix.php?action=host.dashboard.view&hostid=' . $host['hostid']))
+        //        ->setAttribute('style', 'color: white; background-color: #5bbbbc; font-size:12px; padding: 10px; border-radius: 5px; text-decoration: none;');
+        
         $dashboardStatus = empty($graphs)
             ? "📊"  // Mostrar el icono si no hay gráficos
             : (new CLink('See Dashboard', $serverUrl . '/zabbix.php?action=host.dashboard.view&hostid=' . $host['hostid']))
-                ->setAttribute('style', 'color: white; background-color: #5bbbbc; font-size:12px; padding: 10px; border-radius: 5px; text-decoration: none;');
-
+                ->setAttribute('style', 'color: white; background-color: #5bbbbc; font-size:12px; padding: 10px; border-radius: 5px; text-decoration: none;')
+                ->setAttribute('target', '_blank');
+        
         // Añadir las filas con información de problemas y dashboard o icono
         $table->addRow([
             (new CCol($host['name']))->setAttribute('class', 'host-name')->setAttribute('style', 'text-align: center; padding: 10px 0;'),
